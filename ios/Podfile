@@ -16,12 +16,19 @@ end
 
 target 'SourceableAppDTMar25' do
   config = use_native_modules!
+    use_frameworks! :linkage => :static
+$RNFirebaseAsStaticFramework = true
+  flags = get_default_flags()
 
   use_react_native!(
     :path => config[:reactNativePath],
+        :hermes_enabled => flags[:hermes_enabled],
+    :fabric_enabled => flags[:fabric_enabled],
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+  pod 'RNFS', :path => '../node_modules/react-native-fs'
+
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
