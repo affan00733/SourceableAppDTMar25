@@ -51,6 +51,7 @@ export default function CustomCamera() {
   const nav = useNavigation();
   const [pressed, setPressed] = useState(false);
   const camera = useRef(null);
+const [isConfiguring, setIsConfiguring] = useState(false);
 
   const [cameraType, setCameraType] = useState('back'); // 'back' or 'front'
   const device = useCameraDevice(cameraType);
@@ -66,7 +67,25 @@ export default function CustomCamera() {
       console.log('hasPermission check', hasPermission);
       // setHasPermission(status === 'granted');
     });
+    Camera.requestMicrophonePermission().then(status => {
+      console.log('status check', status);
+      console.log('hasPermission microphone check', hasPermission);
+      // setHasPermission(status === 'granted');
+    });
   }, []);
+
+  useEffect(() => {
+  return () => {
+    try {
+      if (camera.current) {
+        // stop recording safely
+        camera.current.stopRecording();
+      }
+    } catch (e) {
+      console.warn('Error during camera cleanup', e);
+    }
+  };
+}, []);
 
   useEffect(() => {
     const analyticsCall = async () => {
@@ -164,9 +183,12 @@ export default function CustomCamera() {
     setZoom(z => Math.max(z - 1, 1)); // decrement zoom, down to 1x (no zoom)
   };
 
-  const toggleCamera = () => {
-    setCameraType(prev => (prev === 'back' ? 'front' : 'back'));
-  };
+const toggleCamera = async () => {
+  if (isConfiguring) return;
+  setIsConfiguring(true);
+  setCameraType(prev => (prev === 'back' ? 'front' : 'back'));
+  setTimeout(() => setIsConfiguring(false), 500); // buffer
+};
 
   const startRecordingHandle = async () => {
     try {
@@ -201,28 +223,29 @@ export default function CustomCamera() {
                 fileName: rand + `_${timestamp}`,
               });
         },
-        onRecordingError: error1 => console.error(error1),
+        onRecordingError: error1_start => console.log("error start",error1_start),
       });
-    } catch (error) {
+    } catch (error_start) {
       nav.navigate('Start');
 
-      console.warn(error);
+      console.log("error before start",error_start);
     }
   };
   const StopRecordingHandle = async () => {
     try {
+      if (!camera.current || isConfiguring) return;
       setPressed(false);
       const data = await camera.current.stopRecording()
         .then(d => {
-          console.log(d);
+          console.log("checked stop",d);
         })
-        .catch(err => {
-          console.log(err);
+        .catch(error_stop => {
+          console.log("checked stop err",error_stop);
         });
       // console.warn(data);
       // console.log('----------------', data);
     } catch (error) {
-      console.warn(error);
+      console.log("checked stop error before",error);
     }
   };
   return (
